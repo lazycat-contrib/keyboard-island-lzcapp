@@ -1,0 +1,8 @@
+application:
+  subdomain: keyboard-island
+  background_task: false
+  multi_instance: false
+  public_path:
+    - /
+  routes:
+    - /=file:///lzcapp/pkg/content

@@ -1,0 +1,5 @@
+buildscript: |
+  bash scripts/fetch-release.sh
+manifest: ./lzc-manifest.yml
+pkgout: ./dist/
+icon: ./icon.png

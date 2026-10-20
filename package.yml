@@ -1,0 +1,15 @@
+package: community.lazycat.app.keyboard-island
+version: 0.1.0
+name: Keyboard Island
+description: "A playful typing adventure for kids: 96 chapters, collectible room decorations, and optional on-device face tracking"
+min_os_version: 1.5.0
+author: shaom
+license: MIT
+homepage: https://github.com/shaom/keyboard-island
+locales:
+  zh:
+    name: "键盘小岛"
+    description: "儿童打字启蒙冒险游戏：16 个世界 96 章节、288 关卡、房间装饰收集、可选本地面部追踪（无倒计时、错误不结束游戏）"
+  en:
+    name: "Keyboard Island"
+    description: "A playful typing adventure for kids with 96 chapters and collectible decorations"
