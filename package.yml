@@ -1,5 +1,5 @@
 package: community.lazycat.app.keyboard-island
-version: 0.1.0
+version: 0.2.0
 name: Keyboard Island
 description: "A playful typing adventure for kids: 96 chapters, collectible room decorations, and optional on-device face tracking"
 min_os_version: 1.5.0

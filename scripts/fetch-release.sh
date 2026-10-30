@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # 从上游 GitHub release 下载静态站点资产到 content/（CI 构建时执行）。
-# 版本号取自 package.yml，资产带 .sha256 校验。
+# 版本优先取 Action 注入的 LAZYCAT_VERSION，回退到 package.yml；资产带 .sha256 校验。
 set -euo pipefail
 
-VERSION=$(grep '^version:' package.yml | awk '{print $2}')
+VERSION="${LAZYCAT_VERSION:-$(grep '^version:' package.yml | awk '{print $2}')}"
 REPO="shaom/keyboard-island"
 ZIP_URL="https://github.com/${REPO}/releases/download/v${VERSION}/keyboard-island-v${VERSION}.zip"
 SHA_URL="https://github.com/${REPO}/releases/download/v${VERSION}/keyboard-island-v${VERSION}.sha256"

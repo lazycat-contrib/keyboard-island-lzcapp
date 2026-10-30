@@ -4,6 +4,15 @@ on:
   schedule:
     - cron: "53 3 * * *"
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/lazycat-action.yml
+      - .github/workflows/lazycat.yml
+      - lzc-build.yml
+      - lzc-manifest.yml
+      - package.yml
+      - scripts/fetch-release.sh
   pull_request:
     paths:
       - .github/lazycat-action.yml
@@ -18,12 +27,11 @@ permissions:
   pull-requests: write
 
 jobs:
-  # 跟随上游 tag：schedule 时检查上游新 release，有新版本则更新 package.yml 并重跑本工作流
+  # 跟随上游 release：schedule / 手动触发时检查上游最新版本，有新版本就更新
+  # package.yml 并 push；push 事件再触发本工作流完成构建与发布。
   upstream-check:
     runs-on: ubuntu-latest
-    if: github.event_name == 'schedule'
-    permissions:
-      contents: write
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     outputs:
       updated: ${{ steps.check.outputs.updated }}
     steps:
@@ -36,14 +44,32 @@ jobs:
         run: |
           set -euo pipefail
           CURRENT=$(grep '^version:' package.yml | awk '{print $2}')
-          UPSTREAM=$(gh release view --repo shaom/keyboard-island --json tagName -q .tagName | sed 's/^v//')
-          echo "current=$CURRENT upstream=$UPSTREAM"
+          # 取最新的正式 release（排除预发布），tag 形如 v0.2.0
+          UPSTREAM=$(gh release view --repo shaom/keyboard-island \
+            --json tagName,isPrerelease -q 'select(.isPrerelease == false) | .tagName' 2>/dev/null | sed 's/^v//' || true)
+          echo "current=$CURRENT upstream=${UPSTREAM:-<none>}"
+          if [ -z "$UPSTREAM" ]; then
+            echo "no upstream release found; nothing to do"
+            echo "updated=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if ! echo "$UPSTREAM" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "not semver ($UPSTREAM); skip"
+            echo "updated=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           if [ "$UPSTREAM" = "$CURRENT" ]; then
             echo "Upstream unchanged."
             echo "updated=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          echo "$UPSTREAM" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$' || { echo "not semver; skip"; echo "updated=false" >> "$GITHUB_OUTPUT"; exit 0; }
+          # 只前进，不回退
+          NEWEST=$(printf '%s\n%s\n' "$CURRENT" "$UPSTREAM" | sort -V | tail -1)
+          if [ "$NEWEST" != "$UPSTREAM" ]; then
+            echo "upstream $UPSTREAM is older than current $CURRENT; skip"
+            echo "updated=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           sed -i "s/^version: .*/version: $UPSTREAM/" package.yml
           git config user.name czyt
           git config user.email czyt@users.noreply.github.com
@@ -52,8 +78,10 @@ jobs:
           echo "updated=true" >> "$GITHUB_OUTPUT"
 
   lazycat:
+    # schedule / 手动触发时先等 upstream-check：如果它更新了版本，push 事件会
+    # 另起一次构建发布，这次就不重复构建；push / PR 事件直接构建。
     needs: upstream-check
-    if: always() && !failure() && !cancelled()
+    if: always() && !failure() && !cancelled() && (github.event_name == 'push' || github.event_name == 'pull_request' || needs.upstream-check.outputs.updated != 'true')
     uses: ca-x/lazycat-github-action/.github/workflows/lazycat.yml@v1
     with:
       operation: auto
