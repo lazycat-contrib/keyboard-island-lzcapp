@@ -5,7 +5,11 @@
 ## 模式
 
 - **静态应用**：内容直接来自上游 GitHub Release 资产（`keyboard-island-v{ver}.zip`，带 sha256 校验），以 `file://` 路由提供，无服务端。
-- **跟随上游 tag**：每日检查上游最新 release，自动更新版本号并重新发布。
+- **跟随上游 release**：每日定时任务与手动触发都会比对上游最新的正式 release
+  （忽略预发布），有新版本就更新 `package.yml` 并重新发布。
+  - 版本更新会 push 到 `main`，由 push 事件触发构建与发布（所以 workflow 配了
+    `push` 触发器；否则改了版本也不会有人构建）
+  - 只前进不回退
 - **喵喵商店发布**：仅私有商店（MiaoMiao private store），不发布官方商店。
 
 ## 说明
